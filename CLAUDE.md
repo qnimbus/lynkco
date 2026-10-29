@@ -25,7 +25,7 @@ mise exec uv@0.13.6 -- uv pip install --python .venv/bin/python -r requirements_
 
 Tests: `tests/conftest.py` enables custom integrations for the HA test harness (`hass` fixture). `pytest.ini` sets `asyncio_mode = auto` and puts the repo root on the import path, so tests import `custom_components.lynkco.*`. `tests/test_features.py` is the exception: it loads `features.py` by file path, so keep `features.py` free of module-level Home Assistant imports. Tests must not call the real Lynk & Co API. Mock `LynkCoAPI` (e.g. `exchange_code`, `validate_session`, `get_vehicles`) instead.
 
-Each login logs out the account's other session (the phone app, or another HA instance). For repeated test logins, use a secondary Lynk & Co account that the car has been shared with.
+Each login logs out the account's other session (the phone app, or another HA instance). For repeated test logins, use a secondary Lynk & Co account that the car has been shared with (confirmed to work; it needs a different phone number from the main account for SMS).
 
 ## Architecture
 
