@@ -60,7 +60,7 @@ GUIDE_TYPE_NAMES = {
 }
 PRE_2025_GUIDE_TYPES = {"CX11_2021_HEV", "CX11_2021_PHEV", "CX11_2022", "CX11_2023"}
 
-ISSUE_TRACKER = "https://github.com/qnimbus/ha_lynkco"
+ISSUE_TRACKER = "https://github.com/qnimbus/lynkco"
 MODEL_REPORT_URL = f"{ISSUE_TRACKER}/issues/new?template=model_report.yml"
 
 # Live permission flags in vehicle_data that gate an action at call time

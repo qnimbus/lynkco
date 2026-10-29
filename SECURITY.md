@@ -6,4 +6,4 @@ Only the most recent public version is supported, excluding prereleases. No upda
 
 ## Reporting a Vulnerability
 
-Please report vulnerabilities privately through GitHub: open the [Security tab](https://github.com/qnimbus/ha_lynkco/security) of this repository and choose **Report a vulnerability**. Do not open a public issue for security problems.
+Please report vulnerabilities privately through GitHub: open the [Security tab](https://github.com/qnimbus/lynkco/security) of this repository and choose **Report a vulnerability**. Do not open a public issue for security problems.

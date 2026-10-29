@@ -3,7 +3,7 @@ Custom [Home Assistant](https://www.home-assistant.io/) integration for Lynk & C
 
 This is a fork of [b12e/ha_lynkco_2025](https://github.com/b12e/ha_lynkco_2025), which did the reverse engineering and most of the work. The fork focuses on an easier login: you copy one line from the browser console, a failed login gets a new link right away, and you can log in again from the integration's menu. It keeps the same integration domain (`lynkco`), so it replaces the original rather than running next to it. Install one or the other; switching keeps your existing setup and entities.
 
-For feature requests or issues with this fork, please [create an issue](https://github.com/qnimbus/ha_lynkco/issues/new/choose) using the template provided.
+For feature requests or issues with this fork, please [create an issue](https://github.com/qnimbus/lynkco/issues/new/choose) using the template provided.
 
 ## Supported Models
 
@@ -24,11 +24,11 @@ A car with a model code the integration has never seen gets the same treatment, 
 
 # Installation
 
-[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=qnimbus&repository=ha_lynkco&category=integration)
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=qnimbus&repository=lynkco&category=integration)
 
 ## HACS (custom repository)
 This fork is not in the default HACS catalog; searching for "Lynk & Co" there finds the original. Add it as a custom repository instead:
-1. Click the button above, or open HACS → ⋮ → Custom repositories and add `https://github.com/qnimbus/ha_lynkco` with type **Integration**
+1. Click the button above, or open HACS → ⋮ → Custom repositories and add `https://github.com/qnimbus/lynkco` with type **Integration**
 2. Download "Lynk & Co" from this repository. If the original is installed, remove it in HACS first; your setup in Home Assistant is kept.
 3. Restart Home Assistant
 4. Go to Settings → Devices & services → + Add Integration → Lynk & Co (skip this if it was already set up)

@@ -20,7 +20,7 @@ body:
     attributes:
       label: Before you start
       options:
-        - label: I have searched the [existing issues](https://github.com/qnimbus/ha_lynkco/issues?q=is%3Aissue) and this hasn't been reported yet.
+        - label: I have searched the [existing issues](https://github.com/qnimbus/lynkco/issues?q=is%3Aissue) and this hasn't been reported yet.
           required: true
         - label: I am running the latest version of the integration (please update via HACS first if you can).
           required: true
