@@ -1,0 +1,8 @@
+# Local development: everything for tests and linting, plus what a running
+# Home Assistant instance (scripts/develop) needs.
+-r requirements_test.txt
+# Needed by HA core's voice assistant. Without them the frontend's action list
+# fails to load. No Python 3.14 wheels exist, so these need a C++ compiler
+# (apt install build-essential).
+pymicro-vad==1.0.1
+pyspeex-noise==1.0.2

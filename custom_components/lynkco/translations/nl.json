@@ -7,26 +7,29 @@
       },
       "auth_url": {
         "title": "Open inlog-URL",
-        "description": "1. Open de DevTools van je browser (F12) > tabblad Netwerk > schakel Logboek bewaren in\n2. Open deze URL in je browser:\n\n{auth_url}\n\n3. Log in met je Lynk & Co e-mailadres, wachtwoord en SMS MFA-code\n4. Na MFA zal de browser falen op msauth://\n5. Zoek in het tabblad Netwerk van DevTools het 302-verzoek > Antwoordheaders > Locatie\n6. Kopieer de volledige msauth://... URL\n\nKlik op Volgende wanneer je klaar bent om de URL te plakken."
+        "description": "Open eerst de browserconsole: druk op F12 en kies het tabblad Console.\n\n1. Open deze link en log in met je Lynk & Co e-mailadres, wachtwoord en sms-code:\n\n   {auth_url}\n\n2. Na de sms-code blijft de pagina laden. Dat is normaal: het inloggen is gelukt, maar je browser kan de msauth://-link voor de Lynk & Co-app niet openen.\n3. Zoek in de console de rode foutmelding \"Failed to launch 'msauth://...'\". Klik er met de rechtermuisknop op en kopieer het bericht (de hele console kopiëren werkt ook).\n4. Ga verder naar het volgende scherm en plak het daar.\n\nDe code is maar een paar minuten geldig.\n\nGeen foutmelding (bijvoorbeeld in Firefox)? Open dan het tabblad Netwerk, selecteer het laatste verzoek en kopieer de response-headers."
       },
       "paste_redirect": {
         "title": "Plak omleidings-URL",
-        "description": "Plak de volledige msauth://... URL uit de Locatie-header van de browser DevTools.",
+        "description": "Plak het consolebericht met de msauth://...-link. De Location-header, alle response-headers of alleen de code werken ook.\n\nOpnieuw inloggen? Gebruik deze link:\n\n{auth_url}",
         "data": {
           "redirect_url": "Omleidings-URL"
         }
       }
     },
     "error": {
-      "no_code": "Geen autorisatiecode gevonden in de URL",
-      "exchange_failed": "Uitwisseling van code voor tokens mislukt. Code is mogelijk verlopen — probeer het opnieuw.",
+      "no_code": "Geen inlogcode gevonden. Plak het consolebericht met de msauth://...-link.",
+      "exchange_failed": "Lynk & Co heeft deze code geweigerd: hij is verlopen of al gebruikt. Hierboven staat een nieuwe inloglink. Log opnieuw in en plak de nieuwe msauth://... URL.",
       "no_token": "Geen toegangstoken ontvangen",
       "session_failed": "Sessievalidatie mislukt",
-      "no_vehicles": "Geen voertuigen gevonden op dit account"
+      "no_vehicles": "Geen voertuigen gevonden op dit account",
+      "login_error": "Het inloggen is niet voltooid ({login_error}). Log opnieuw in via de link hierboven.",
+      "cannot_connect": "Kan Lynk & Co niet bereiken. Controleer je verbinding en probeer het opnieuw. De code is mogelijk nog een paar minuten geldig."
     },
     "abort": {
       "already_configured": "Dit account is al geconfigureerd",
       "reauth_successful": "Opnieuw aanmelden is gelukt.",
+      "reconfigure_successful": "Opnieuw inloggen is gelukt.",
       "wrong_account": "Het account waarmee je bent ingelogd is niet het account van deze integratie. Log in met hetzelfde Lynk & Co-account."
     }
   },

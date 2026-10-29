@@ -1,0 +1,4 @@
+# Tests and linting (also used by CI). Pulls in the matching homeassistant release.
+pytest-homeassistant-custom-component==0.13.375
+pkce>=1.0.3
+ruff==0.17.3

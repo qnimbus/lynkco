@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Start the local Home Assistant dev instance from .venv.
+# On a fresh config dir, onboarding is completed automatically with an owner
+# account test / test (override with HA_USER / HA_PASS). Ctrl+C stops HA.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+CONFIG="${CONFIG_DIR:-$ROOT/config}"
+URL="${HA_URL:-http://localhost:8123}"
+HA_USER="${HA_USER:-test}"
+HA_PASS="${HA_PASS:-test}"
+CLIENT_ID="$URL/"
+
+mkdir -p "$CONFIG/custom_components"
+ln -sfn "$ROOT/custom_components/lynkco" "$CONFIG/custom_components/lynkco"
+if [[ ! -f "$CONFIG/configuration.yaml" ]]; then
+  cat > "$CONFIG/configuration.yaml" <<'YAML'
+# Bare-bones instance for developing the Lynk & Co integration.
+frontend:
+onboarding:
+config:
+repairs:
+diagnostics:
+system_log:
+
+logger:
+  default: info
+  logs:
+    custom_components.lynkco: debug
+YAML
+fi
+
+"$ROOT/.venv/bin/hass" -c "$CONFIG" &
+HASS_PID=$!
+trap 'kill "$HASS_PID" 2>/dev/null; wait "$HASS_PID" 2>/dev/null' INT TERM EXIT
+
+# Wait until the API answers (401 = up, not logged in).
+for _ in $(seq 1 300); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/" || true)
+  [[ "$code" == "401" || "$code" == "200" ]] && break
+  kill -0 "$HASS_PID" 2>/dev/null || { echo "Home Assistant exited during startup" >&2; exit 1; }
+  read -rt 1 <> <(:) || true
+done
+
+steps=$(curl -s "$URL/api/onboarding" || true)
+if [[ "$steps" == *'"step":"user","done":false'* ]]; then
+  echo "Fresh instance: completing onboarding as $HA_USER / $HA_PASS"
+  auth_code=$(curl -sf -X POST "$URL/api/onboarding/users" -H 'Content-Type: application/json' \
+    -d "{\"client_id\":\"$CLIENT_ID\",\"name\":\"$HA_USER\",\"username\":\"$HA_USER\",\"password\":\"$HA_PASS\",\"language\":\"en\"}" \
+    | python3 -c 'import json,sys;print(json.load(sys.stdin)["auth_code"])')
+  token=$(curl -sf -X POST "$URL/auth/token" \
+    -d grant_type=authorization_code -d "code=$auth_code" -d "client_id=$CLIENT_ID" \
+    | python3 -c 'import json,sys;print(json.load(sys.stdin)["access_token"])')
+  for step in core_config analytics; do
+    curl -sf -o /dev/null -X POST "$URL/api/onboarding/$step" \
+      -H "Authorization: Bearer $token" -H 'Content-Type: application/json' -d '{}'
+  done
+  curl -sf -o /dev/null -X POST "$URL/api/onboarding/integration" \
+    -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+    -d "{\"client_id\":\"$CLIENT_ID\",\"redirect_uri\":\"$URL/?auth_callback=1\"}"
+  echo "Onboarding done."
+fi
+
+echo "Home Assistant is running at $URL (Ctrl+C to stop)"
+wait "$HASS_PID"

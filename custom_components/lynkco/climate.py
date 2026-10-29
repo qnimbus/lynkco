@@ -116,10 +116,10 @@ class LynkCoClimate(LynkCoEntity, RestoreEntity, ClimateEntity):
         if temp is None:
             return
         self.coordinator.require_action("start_conditioning")
-        _LOGGER.info("Setting climate temperature to %s for %s", temp, self.coordinator.vin)
+        _LOGGER.info("Setting climate temperature to %s for %s", temp, self.coordinator.log_id)
         self._target_temp = float(temp)
         self.async_write_ha_state()
-        await self._api.start_conditioning(self.coordinator.vin, int(round(temp)))
+        await self._api.start_conditioning(self.coordinator.vin, round(temp))
         self._refresh_climate()
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
@@ -131,13 +131,13 @@ class LynkCoClimate(LynkCoEntity, RestoreEntity, ClimateEntity):
     async def async_turn_on(self) -> None:
         self.coordinator.require_action("start_conditioning")
         temp = self.target_temperature or DEFAULT_TARGET_TEMP
-        _LOGGER.info("Starting climate for %s", self.coordinator.vin)
-        await self._api.start_conditioning(self.coordinator.vin, int(round(temp)))
+        _LOGGER.info("Starting climate for %s", self.coordinator.log_id)
+        await self._api.start_conditioning(self.coordinator.vin, round(temp))
         self._refresh_climate()
 
     async def async_turn_off(self) -> None:
         self.coordinator.require_action("stop_conditioning")
-        _LOGGER.info("Stopping climate for %s", self.coordinator.vin)
+        _LOGGER.info("Stopping climate for %s", self.coordinator.log_id)
         await self._api.stop_conditioning(self.coordinator.vin)
         self._refresh_climate()
 

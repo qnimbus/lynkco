@@ -1,11 +1,9 @@
 # Lynk & Co Home Assistant Integration
-![Usage counter](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://raw.githubusercontent.com/b12e/hacs-b12e-usage-stats/refs/heads/main/usage.json&query=$.integrations.lynkco.total_usage) 
+Custom [Home Assistant](https://www.home-assistant.io/) integration for Lynk & Co vehicles (>MY25 01, 02 and 08), installable as a custom repository in [HACS](https://hacs.xyz/).
 
-Custom [Home Assistant](https://www.home-assistant.io/) integration for Lynk & Co vehicles (>MY25 01, 02 and 08), installable from the Home Assistant [Marketplace](https://www.home-assistant.io/integrations/marketplace/) (Home Assistant 2026.11 and newer) or [HACS](https://hacs.xyz/) (2026.10 and older).
+This is a fork of [b12e/ha_lynkco_2025](https://github.com/b12e/ha_lynkco_2025), which did the reverse engineering and most of the work. The fork focuses on an easier login: you copy one line from the browser console, a failed login gets a new link right away, and you can log in again from the integration's menu. It keeps the same integration domain (`lynkco`), so it replaces the original rather than running next to it. Install one or the other; switching keeps your existing setup and entities.
 
-If you like the integration, make sure to show your love by giving it a ⭐. 
-
-Pull requests are currently turned off (to prevent AI slop). If you have any feature requests or issues, please [create an issue](https://github.com/b12e/ha_lynkco_2025/issues/new/choose) using the template provided. 
+For feature requests or issues with this fork, please [create an issue](https://github.com/qnimbus/ha_lynkco_2025/issues/new/choose) using the template provided.
 
 ## Supported Models
 
@@ -26,23 +24,14 @@ A car with a model code the integration has never seen gets the same treatment, 
 
 # Installation
 
-[![Open your Home Assistant instance and open this repository in the Marketplace or HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=b12e&repository=ha_lynkco_2025&category=integration)
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=qnimbus&repository=ha_lynkco_2025&category=integration)
 
-## Marketplace (Home Assistant 2026.11 and newer)
-Starting with Home Assistant 2026.11, HACS ships as part of Home Assistant itself under the name [Marketplace](https://www.home-assistant.io/integrations/marketplace/). It uses the same catalog, so this integration is available there without adding a custom repository.
-1. Go to Settings → Marketplace
-2. Search for "Lynk & Co" and click Install
+## HACS (custom repository)
+This fork is not in the default HACS catalog; searching for "Lynk & Co" there finds the original. Add it as a custom repository instead:
+1. Click the button above, or open HACS → ⋮ → Custom repositories and add `https://github.com/qnimbus/ha_lynkco_2025` with type **Integration**
+2. Download "Lynk & Co" from this repository. If the original is installed, remove it in HACS first; your setup in Home Assistant is kept.
 3. Restart Home Assistant
-4. Go to Settings → Devices & services → + Add Integration → Lynk & Co
-
-> [!NOTE]
-> If you installed the integration through HACS before upgrading to 2026.11, nothing changes: it stays installed and keeps receiving updates through the Marketplace.
-
-## HACS (Home Assistant 2026.10 and older)
-1. Make sure [HACS](https://hacs.xyz) is installed in your Home Assistant installation
-2. Search for "Lynk & Co" and click Download. Follow the on-screen instructions.
-3. Restart Home Assistant
-4. Go to Settings → Devices & services → + Add Integration → Lynk & Co
+4. Go to Settings → Devices & services → + Add Integration → Lynk & Co (skip this if it was already set up)
 
 ## Manual
 Copy `custom_components/lynkco/` to your Home Assistant `custom_components` directory.
@@ -51,20 +40,21 @@ Copy `custom_components/lynkco/` to your Home Assistant `custom_components` dire
 
 The integration uses Azure AD B2C authentication with MFA in the same way the mobile app uses it. Setup requires a one-time browser login:
 
-1. Add the integration in Home Assistant
-2. A login URL is generated - open it in your browser
-3. Open DevTools (F12) → Network tab
-4. Log in with your Lynk & Co email + password + SMS MFA code
-5. After MFA, the browser will fail to open `msauth://...`
-6. In the network tab of your developer tools, find the last request → copy the `Location` header value
-7. Paste the full `msauth://...` URL back in Home Assistant
+1. Add the integration in Home Assistant. It shows a login link.
+2. In your browser, open the console first: press F12 and choose the Console tab.
+3. Open the login link and log in with your Lynk & Co email, password and SMS code.
+4. After the SMS code the page keeps loading. That is expected: your browser cannot open the `msauth://...` link meant for the Lynk & Co app.
+5. In the console, right-click the red error `Failed to launch 'msauth://...'` and copy the message.
+6. Paste it in Home Assistant. The integration finds the login code in it.
+
+The code is only valid for a few minutes. If it has expired, Home Assistant shows a new login link right away.
 
 > [!TIP]
-> Firefox dev tools don't show the entire header. Right click on the request and copy the response headers instead, and then get the `msauth://` header from there.
+> No `Failed to launch` error in the console (for example in Firefox)? Open the Network tab, select the last request, copy its response headers and paste those instead.
 
 This process should be similar to the HACS integration for pre-2025 Lynk&Co cars such as the [Donkie](https://github.com/Donkie/Hass-Lynk-Co) one. 
 
-Tokens are automatically refreshed. You should only need to re-authenticate if the refresh token expires (e.g. if your Home Assistant instance has been offline for an extended period of time, or when you log in on the mobile app).
+Tokens are automatically refreshed. You should only need to re-authenticate if the refresh token expires (e.g. if your Home Assistant instance has been offline for an extended period of time, or when you log in on the mobile app). Home Assistant then asks you to log in again under Settings → Repairs. You can also log in again yourself at any time: Settings → Devices & services → Lynk & Co → ⋮ → **Reconfigure**. Your entities and settings are kept.
 
 ## Limitations
 
@@ -104,5 +94,7 @@ Custom polling intervals can be configured using the gear icon after setting up 
 # Credits
 
 API reverse-engineered from the Lynk & Co Android app v2.55.0 and v2.63.0, and verified against v2.67.0.
+
+Original integration by [b12e](https://github.com/b12e/ha_lynkco_2025). The per-model pages in the Features section live in that repository's wiki.
 
 This integration is not endorsed by Lynk&Co and I have no affiliation with them whatsoever.

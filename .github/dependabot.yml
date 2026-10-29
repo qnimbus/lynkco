@@ -8,3 +8,7 @@ updates:
     directory: "/custom_components/lynkco"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"

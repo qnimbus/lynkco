@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Lint the integration and tests with ruff, fixing what can be fixed safely.
+set -e
+cd "$(dirname "$0")/.."
+.venv/bin/ruff check . --fix "$@"

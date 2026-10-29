@@ -17,11 +17,11 @@ tested without a Home Assistant install; see ``tests/test_features.py``.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass, field
 import json
 import os
 import re
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Any
 
 MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")

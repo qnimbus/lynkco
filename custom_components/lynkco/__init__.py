@@ -1,18 +1,16 @@
 """Lynk & Co integration for Home Assistant."""
 
-import logging
 from datetime import timedelta
-
-import voluptuous as vol
+import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+import voluptuous as vol
 
-from .api import LynkCoAPI, LynkCoAuthError
+from .api import LynkCoAPI, LynkCoAuthError, mask_vin, mask_vins
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_DEVICE_ID,
@@ -236,12 +234,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except LynkCoAuthError as err:
             raise ConfigEntryAuthFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001 - identity is best effort
-            _LOGGER.warning("Could not read the vehicle guide type for %s: %s", vin, err)
+            _LOGGER.warning("Could not read the vehicle guide type for %s: %s", mask_vin(vin), mask_vins(err))
             guide_type = None
         features = await async_get_model_features(hass, guide_type, model)
         _LOGGER.info(
             "Vehicle %s: model %s, guide type %s, features from %s",
-            vin, model, guide_type, features.file,
+            mask_vin(vin), model, guide_type, features.file,
         )
 
         coordinator = LynkCoCoordinator(hass, entry, api, vin, model, guide_type, features)

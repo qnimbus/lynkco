@@ -9,3 +9,7 @@
 # Python
 __pycache__/
 .pytest_cache/
+
+# Local Home Assistant dev instance (holds tokens) and virtualenv
+config/
+.venv/

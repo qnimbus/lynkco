@@ -6,5 +6,4 @@ Only the most recent public version is supported, excluding prereleases. No upda
 
 ## Reporting a Vulnerability
 
-You can report vulnerabilities via email: hacs-lynkco-reports@proton.me
-
+Please report vulnerabilities privately through GitHub: open the [Security tab](https://github.com/qnimbus/ha_lynkco_2025/security) of this repository and choose **Report a vulnerability**. Do not open a public issue for security problems.

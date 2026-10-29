@@ -1,8 +1,10 @@
 """API client for Lynk & Co vehicles."""
 
+import asyncio
 import hashlib
 import json
 import logging
+import re
 import urllib.parse
 import uuid
 
@@ -10,7 +12,6 @@ import aiohttp
 import pkce
 
 from .const import (
-    API_BASE,
     CLIENT_ID,
     COMMAND_BASE,
     IAM_BASE,
@@ -20,7 +21,6 @@ from .const import (
     SCOPE,
     SIGNATURE_BASE_URLS,
     SIGNATURE_VERSION,
-    TENANT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,6 +46,14 @@ REDACT_KEY_PARTS = (
 )
 
 
+# The msauth:// redirect anywhere in pasted text (e.g. a block of response headers).
+_REDIRECT_RE = re.compile(r"msauth://[^\s\"'<>]+")
+# A bare authorization code: base64url segments joined by dots, no whitespace.
+_BARE_CODE_RE = re.compile(r"[A-Za-z0-9_.\-]{20,}")
+# A VIN: 17 characters, digits and capitals except I, O and Q.
+_VIN_RE = re.compile(r"\b[A-HJ-NPR-Z0-9]{17}\b")
+
+
 class LynkCoAuthError(Exception):
     """The session is no longer valid and the refresh token was rejected.
 
@@ -63,6 +71,43 @@ def redact(value: object, key: str = "") -> object:
     if isinstance(value, list):
         return [redact(item, key) for item in value]
     return value
+
+
+def mask_vin(vin: str) -> str:
+    """Shorten a VIN for logs: the last 4 characters still tell cars apart."""
+    return f"***{vin[-4:]}" if vin else vin
+
+
+def mask_vins(text: object) -> str:
+    """Mask every VIN in a text, e.g. an error message that contains a URL."""
+    return _VIN_RE.sub(lambda match: mask_vin(match.group()), str(text))
+
+
+def _duration(seconds: object) -> str:
+    try:
+        value = int(seconds)
+    except (TypeError, ValueError):
+        return "unknown (not in response)"
+    if value >= 86400:
+        return f"{value} s ({value / 86400:g} days)"
+    return f"{value} s ({value / 60:g} min)"
+
+
+def _log_token_lifetimes(event: str, data: dict) -> None:
+    """Log how long B2C says new tokens stay valid. Never logs token values.
+
+    The refresh token is opaque, so B2C's refresh_token_expires_in is the only
+    way to learn how long a session survives without a refresh.
+    """
+    if not _LOGGER.isEnabledFor(logging.DEBUG):
+        return
+    _LOGGER.debug(
+        "%s: access token valid for %s, refresh token valid for %s (response fields: %s)",
+        event,
+        _duration(data.get("expires_in")),
+        _duration(data.get("refresh_token_expires_in")),
+        ", ".join(sorted(data)),
+    )
 
 
 def _compute_signature(secret: str, nonce: str, path: str) -> str:
@@ -101,6 +146,9 @@ class LynkCoAPI:
         self._refresh_token = refresh_token
         self._device_id = device_id
         self._on_token_refresh = on_token_refresh
+        # Fast polls, targeted refreshes and the regular poll share this client;
+        # the lock keeps their 401 handling to a single refresh at a time.
+        self._refresh_lock = asyncio.Lock()
         self._claims: dict = {}
         self._update_claims()
 
@@ -162,10 +210,11 @@ class LynkCoAPI:
 
     async def _request(self, method: str, url: str, **kwargs) -> dict:
         headers = self._build_headers(url)
+        token_used = self._access_token
         async with self._session.request(method, url, headers=headers, **kwargs) as resp:
             if resp.status == 401:
                 _LOGGER.debug("Got 401, attempting token refresh")
-                if not await self.refresh_tokens():
+                if not await self.refresh_tokens(stale_token=token_used):
                     raise LynkCoAuthError("Session expired and the refresh token was rejected")
                 headers = self._build_headers(url)
                 async with self._session.request(
@@ -187,9 +236,23 @@ class LynkCoAPI:
     @staticmethod
     def _log_response(url: str, data: object) -> None:
         if _LOGGER.isEnabledFor(logging.DEBUG):
-            _LOGGER.debug("API response %s: %s", _extract_path(url), redact(data))
+            _LOGGER.debug("API response %s: %s", mask_vins(_extract_path(url)), redact(data))
 
-    async def refresh_tokens(self) -> bool:
+    async def refresh_tokens(self, stale_token: str | None = None) -> bool:
+        """Get a new access token with the refresh token.
+
+        Pass the access token that was rejected as ``stale_token``: if another
+        caller already replaced it while this one waited for the lock, the new
+        token is used as is instead of refreshing again. Without it, the
+        refresh always runs.
+        """
+        async with self._refresh_lock:
+            if stale_token is not None and self._access_token != stale_token:
+                _LOGGER.debug("Token was already refreshed by another request")
+                return True
+            return await self._refresh_tokens_locked()
+
+    async def _refresh_tokens_locked(self) -> bool:
         url = f"{LOGIN_B2C_URL}oauth2/v2.0/token"
         async with self._session.post(
             url,
@@ -212,7 +275,7 @@ class LynkCoAPI:
             self._access_token = data["access_token"]
             self._refresh_token = data.get("refresh_token", self._refresh_token)
             self._update_claims()
-            _LOGGER.debug("Tokens refreshed successfully")
+            _log_token_lifetimes("Tokens refreshed", data)
             if self._on_token_refresh:
                 self._on_token_refresh(self._access_token, self._refresh_token)
             return True
@@ -388,15 +451,31 @@ class LynkCoAPI:
         return url, code_verifier, code_challenge
 
     @staticmethod
-    def extract_code_from_url(url: str) -> str | None:
-        """Extract authorization code from msauth:// redirect URL."""
-        if "code=" in url:
-            if "?" in url:
-                query = url.split("?", 1)[1]
-            else:
-                query = url
-            return urllib.parse.parse_qs(query).get("code", [None])[0]
-        return None
+    def parse_redirect(text: str) -> tuple[str | None, str | None]:
+        """Find the authorization code in whatever the user pasted.
+
+        Accepts the msauth:// redirect URL, a copied block of response headers
+        that contains it, a bare query string, or just the code.
+        Returns ``(code, error)``. ``error`` is the first line of B2C's error
+        description when the login itself failed (e.g. it was cancelled).
+        """
+        text = text.strip()
+        if match := _REDIRECT_RE.search(text):
+            query = urllib.parse.urlsplit(match.group(0)).query
+        elif token := next(
+            (part for part in text.split() if "code=" in part or "error=" in part), None
+        ):
+            query = token.split("?", 1)[-1]
+        else:
+            return (text if _BARE_CODE_RE.fullmatch(text) else None), None
+
+        params = urllib.parse.parse_qs(query)
+        if code := params.get("code", [None])[0]:
+            return code, None
+        if error := params.get("error", [None])[0]:
+            description = params.get("error_description", [error])[0]
+            return None, description.strip().splitlines()[0]
+        return None, None
 
     @staticmethod
     async def exchange_code(
@@ -423,4 +502,6 @@ class LynkCoAPI:
             if resp.status != 200:
                 _LOGGER.error("Token exchange failed: %d", resp.status)
                 return None
-            return await resp.json()
+            data = await resp.json()
+            _log_token_lifetimes("Logged in", data)
+            return data

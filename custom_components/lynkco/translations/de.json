@@ -7,26 +7,29 @@
       },
       "auth_url": {
         "title": "Anmelde-URL öffnen",
-        "description": "1. Öffnen Sie die DevTools Ihres Browsers (F12) > Registerkarte Netzwerk > aktivieren Sie Protokoll beibehalten\n2. Öffnen Sie diese URL in Ihrem Browser:\n\n{auth_url}\n\n3. Melden Sie sich mit Ihrer Lynk & Co E-Mail, Ihrem Passwort und dem SMS-MFA-Code an\n4. Nach der MFA wird der Browser bei msauth:// fehlschlagen\n5. Suchen Sie in der Registerkarte Netzwerk der DevTools die 302-Anfrage > Antwortheader > Standort\n6. Kopieren Sie die vollständige msauth://... URL\n\nKlicken Sie auf Weiter, wenn Sie bereit sind, die URL einzufügen."
+        "description": "Öffnen Sie zuerst die Browserkonsole: Drücken Sie F12 und wählen Sie den Tab „Konsole“.\n\n1. Öffnen Sie diesen Link und melden Sie sich mit Ihrer Lynk & Co E-Mail-Adresse, Ihrem Passwort und dem SMS-Code an:\n\n   {auth_url}\n\n2. Nach dem SMS-Code lädt die Seite weiter. Das ist normal: Die Anmeldung hat funktioniert, aber Ihr Browser kann den msauth://-Link für die Lynk & Co App nicht öffnen.\n3. Suchen Sie in der Konsole den roten Fehler \"Failed to launch 'msauth://...'\". Klicken Sie mit der rechten Maustaste darauf und kopieren Sie die Meldung (die ganze Konsole zu kopieren funktioniert auch).\n4. Fahren Sie mit dem nächsten Schritt fort und fügen Sie sie dort ein.\n\nDer Code ist nur wenige Minuten gültig.\n\nKein solcher Fehler (zum Beispiel in Firefox)? Öffnen Sie dann den Tab „Netzwerk“, wählen Sie die letzte Anfrage und kopieren Sie ihre Antwort-Header."
       },
       "paste_redirect": {
         "title": "Umleitungs-URL einfügen",
-        "description": "Fügen Sie die vollständige msauth://... URL aus dem Standort-Header der Browser-DevTools ein.",
+        "description": "Fügen Sie die Konsolenmeldung mit dem msauth://...-Link ein. Der Location-Header, alle Antwort-Header oder nur der Code funktionieren auch.\n\nErneut anmelden? Verwenden Sie diesen Link:\n\n{auth_url}",
         "data": {
           "redirect_url": "Umleitungs-URL"
         }
       }
     },
     "error": {
-      "no_code": "Kein Autorisierungscode in der URL gefunden",
-      "exchange_failed": "Austausch des Codes gegen Token fehlgeschlagen. Der Code ist möglicherweise abgelaufen — versuchen Sie es erneut.",
+      "no_code": "Kein Anmeldecode gefunden. Fügen Sie die Konsolenmeldung mit dem msauth://...-Link ein.",
+      "exchange_failed": "Lynk & Co hat diesen Code abgelehnt: Er ist abgelaufen oder wurde bereits verwendet. Oben wird ein neuer Anmeldelink angezeigt. Melden Sie sich erneut an und fügen Sie die neue msauth://... URL ein.",
       "no_token": "Kein Zugriffstoken empfangen",
       "session_failed": "Sitzungsvalidierung fehlgeschlagen",
-      "no_vehicles": "Keine Fahrzeuge auf diesem Konto gefunden"
+      "no_vehicles": "Keine Fahrzeuge auf diesem Konto gefunden",
+      "login_error": "Die Anmeldung wurde nicht abgeschlossen ({login_error}). Melden Sie sich über den Link oben erneut an.",
+      "cannot_connect": "Lynk & Co ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut. Der Code ist möglicherweise noch einige Minuten gültig."
     },
     "abort": {
       "already_configured": "Dieses Konto ist bereits konfiguriert",
       "reauth_successful": "Die erneute Anmeldung war erfolgreich.",
+      "reconfigure_successful": "Die erneute Anmeldung war erfolgreich.",
       "wrong_account": "Das verwendete Konto ist nicht das für diesen Eintrag konfigurierte Konto. Melde dich mit demselben Lynk & Co-Konto an."
     }
   },

@@ -15,7 +15,7 @@ body:
     attributes:
       label: Before you start
       options:
-        - label: I have searched the [existing issues](https://github.com/b12e/ha_lynkco_2025/issues?q=is%3Aissue) and this hasn't been requested yet.
+        - label: I have searched the [existing issues](https://github.com/qnimbus/ha_lynkco_2025/issues?q=is%3Aissue) and this hasn't been requested yet.
           required: true
 
   - type: textarea

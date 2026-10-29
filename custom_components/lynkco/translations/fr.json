@@ -7,26 +7,29 @@
       },
       "auth_url": {
         "title": "Ouvrir l'URL de connexion",
-        "description": "1. Ouvrez les DevTools de votre navigateur (F12) > onglet Réseau > activez Conserver le journal\n2. Ouvrez cette URL dans votre navigateur :\n\n{auth_url}\n\n3. Connectez-vous avec votre e-mail, mot de passe et code MFA SMS Lynk & Co\n4. Après le MFA, le navigateur échouera sur msauth://\n5. Dans l'onglet Réseau des DevTools, trouvez la requête 302 > En-têtes de réponse > Emplacement\n6. Copiez l'URL complète msauth://...\n\nCliquez sur Suivant lorsque vous êtes prêt à coller l'URL."
+        "description": "Avant de commencer, ouvrez la console du navigateur : appuyez sur F12 et choisissez l'onglet Console.\n\n1. Ouvrez ce lien et connectez-vous avec l'e-mail, le mot de passe et le code SMS de votre compte Lynk & Co :\n\n   {auth_url}\n\n2. Après le code SMS, la page continue de charger. C'est normal : la connexion a réussi, mais votre navigateur ne peut pas ouvrir le lien msauth:// destiné à l'application Lynk & Co.\n3. Dans la console, repérez l'erreur rouge \"Failed to launch 'msauth://...'\". Faites un clic droit dessus et copiez le message (copier toute la console fonctionne aussi).\n4. Passez à l'écran suivant et collez-le.\n\nLe code n'est valable que quelques minutes.\n\nPas d'erreur de ce type (par exemple dans Firefox) ? Ouvrez l'onglet Réseau, sélectionnez la dernière requête et copiez ses en-têtes de réponse."
       },
       "paste_redirect": {
         "title": "Coller l'URL de redirection",
-        "description": "Collez l'URL complète msauth://... depuis l'en-tête Emplacement des DevTools du navigateur.",
+        "description": "Collez le message de la console contenant le lien msauth://. L'en-tête Location, tous les en-têtes de réponse ou seulement le code fonctionnent aussi.\n\nBesoin de vous reconnecter ? Utilisez ce lien :\n\n{auth_url}",
         "data": {
           "redirect_url": "URL de redirection"
         }
       }
     },
     "error": {
-      "no_code": "Aucun code d'autorisation trouvé dans l'URL",
-      "exchange_failed": "Échec de l'échange du code contre des jetons. Le code a peut-être expiré — réessayez.",
+      "no_code": "Aucun code de connexion trouvé. Collez le message de la console contenant le lien msauth://.",
+      "exchange_failed": "Lynk & Co a refusé ce code : il a expiré ou a déjà été utilisé. Un nouveau lien de connexion est affiché ci-dessus. Reconnectez-vous et collez la nouvelle URL msauth://...",
       "no_token": "Aucun jeton d'accès reçu",
       "session_failed": "Échec de la validation de session",
-      "no_vehicles": "Aucun véhicule trouvé sur ce compte"
+      "no_vehicles": "Aucun véhicule trouvé sur ce compte",
+      "login_error": "La connexion n'a pas abouti ({login_error}). Reconnectez-vous avec le lien ci-dessus.",
+      "cannot_connect": "Impossible de joindre Lynk & Co. Vérifiez votre connexion et réessayez. Le code est peut-être encore valable quelques minutes."
     },
     "abort": {
       "already_configured": "Ce compte est déjà configuré",
       "reauth_successful": "La réauthentification a réussi.",
+      "reconfigure_successful": "La reconnexion a réussi.",
       "wrong_account": "Le compte utilisé n'est pas celui configuré pour cette entrée. Connectez-vous avec le même compte Lynk & Co."
     }
   },

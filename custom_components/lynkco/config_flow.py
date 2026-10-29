@@ -4,12 +4,16 @@ import logging
 import uuid
 
 import aiohttp
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
+    ConfigFlow,
+    OptionsFlow,
+)
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlow, OptionsFlow
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
-from .api import LynkCoAPI
+from .api import LynkCoAPI, LynkCoAuthError
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_DEVICE_ID,
@@ -22,6 +26,8 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+PASTE_SCHEMA = vol.Schema({vol.Required("redirect_url"): str})
 
 
 class LynkCoConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -37,14 +43,27 @@ class LynkCoConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize."""
         self._auth_url: str | None = None
         self._code_verifier: str | None = None
-        self._code_challenge: str | None = None
+
+    def _new_login_link(self) -> None:
+        """Create a login URL with a fresh PKCE pair."""
+        self._auth_url, self._code_verifier, _ = LynkCoAPI.generate_auth_url()
+
+    def _show_paste_form(self, errors: dict[str, str], login_error: str = ""):
+        return self.async_show_form(
+            step_id="paste_redirect",
+            data_schema=PASTE_SCHEMA,
+            errors=errors,
+            # The link is repeated here so a failed attempt can be retried
+            # without restarting the flow.
+            description_placeholders={
+                "auth_url": self._auth_url,
+                "login_error": login_error,
+            },
+        )
 
     async def async_step_user(self, user_input=None):
         """Step 1: Generate auth URL and show it to the user."""
-        self._auth_url, self._code_verifier, self._code_challenge = (
-            LynkCoAPI.generate_auth_url()
-        )
-
+        self._new_login_link()
         return self.async_show_form(
             step_id="auth_url",
             description_placeholders={"auth_url": self._auth_url},
@@ -53,95 +72,88 @@ class LynkCoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_auth_url(self, user_input=None):
         """Step 2: User has opened the URL — ask for the redirect."""
-        return self.async_show_form(
-            step_id="paste_redirect",
-            data_schema=vol.Schema(
-                {vol.Required("redirect_url"): str}
-            ),
-            errors={},
-        )
+        return self._show_paste_form({})
 
     async def async_step_paste_redirect(self, user_input=None):
         """Step 3: Exchange the code for tokens."""
-        errors = {}
+        if user_input is None:
+            return self._show_paste_form({})
 
-        if user_input is not None:
-            redirect_url = user_input["redirect_url"].strip()
-            code = LynkCoAPI.extract_code_from_url(redirect_url)
+        code, login_error = LynkCoAPI.parse_redirect(user_input["redirect_url"])
+        if login_error:
+            return self._show_paste_form({"redirect_url": "login_error"}, login_error)
+        if not code:
+            return self._show_paste_form({"redirect_url": "no_code"})
 
-            if not code:
-                # Maybe the user pasted just the code
-                code = redirect_url if len(redirect_url) > 100 else None
+        session = async_get_clientsession(self.hass)
+        try:
+            tokens = await LynkCoAPI.exchange_code(session, code, self._code_verifier)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            # The code was never used, so it may still work on a retry.
+            _LOGGER.warning("Could not reach the Lynk & Co login service: %s", err)
+            return self._show_paste_form({"base": "cannot_connect"})
 
-            if not code:
-                errors["redirect_url"] = "no_code"
-            else:
-                session = async_get_clientsession(self.hass)
-                tokens = await LynkCoAPI.exchange_code(
-                    session, code, self._code_verifier
-                )
+        if tokens is None:
+            # Codes are single-use and expire after a few minutes. A new link
+            # with a fresh PKCE pair lets the user log in again straight away.
+            self._new_login_link()
+            return self._show_paste_form({"redirect_url": "exchange_failed"})
 
-                if tokens is None:
-                    errors["redirect_url"] = "exchange_failed"
-                else:
-                    access_token = tokens.get("access_token", "")
-                    refresh_token = tokens.get("refresh_token", "")
-                    device_id = str(uuid.uuid4())
+        access_token = tokens.get("access_token", "")
+        refresh_token = tokens.get("refresh_token", "")
+        device_id = str(uuid.uuid4())
+        if not access_token:
+            return self._show_paste_form({"redirect_url": "no_token"})
 
-                    if not access_token:
-                        errors["redirect_url"] = "no_token"
-                    else:
-                        # Validate by calling the API
-                        api = LynkCoAPI(
-                            session, access_token, refresh_token, device_id
-                        )
-                        if not await api.validate_session():
-                            errors["redirect_url"] = "session_failed"
-                        else:
-                            vehicles = await api.get_vehicles()
-                            if not vehicles:
-                                errors["redirect_url"] = "no_vehicles"
-                            else:
-                                # Use email as unique ID
-                                await self.async_set_unique_id(api.user_email)
+        # Validate by calling the API
+        api = LynkCoAPI(session, access_token, refresh_token, device_id)
+        try:
+            if not await api.validate_session():
+                return self._show_paste_form({"redirect_url": "session_failed"})
+            vehicles = await api.get_vehicles()
+        except LynkCoAuthError:
+            return self._show_paste_form({"redirect_url": "session_failed"})
+        except (aiohttp.ClientError, TimeoutError) as err:
+            _LOGGER.warning("Could not reach the Lynk & Co API: %s", err)
+            return self._show_paste_form({"base": "cannot_connect"})
+        if not vehicles:
+            return self._show_paste_form({"redirect_url": "no_vehicles"})
 
-                                if self.source == SOURCE_REAUTH:
-                                    # Re-login after an expired session: keep the
-                                    # entry (and its entities), only swap the tokens.
-                                    self._abort_if_unique_id_mismatch(reason="wrong_account")
-                                    return self.async_update_reload_and_abort(
-                                        self._get_reauth_entry(),
-                                        data_updates={
-                                            CONF_ACCESS_TOKEN: access_token,
-                                            CONF_REFRESH_TOKEN: refresh_token,
-                                            CONF_DEVICE_ID: device_id,
-                                        },
-                                    )
+        # Use email as unique ID
+        await self.async_set_unique_id(api.user_email)
+        data = {
+            CONF_ACCESS_TOKEN: access_token,
+            CONF_REFRESH_TOKEN: refresh_token,
+            CONF_DEVICE_ID: device_id,
+        }
 
-                                self._abort_if_unique_id_configured()
+        if self.source in (SOURCE_REAUTH, SOURCE_RECONFIGURE):
+            # Re-login: keep the entry (and its entities), only swap the tokens.
+            # The abort reason follows the source (reauth_/reconfigure_successful).
+            self._abort_if_unique_id_mismatch(reason="wrong_account")
+            entry = (
+                self._get_reauth_entry()
+                if self.source == SOURCE_REAUTH
+                else self._get_reconfigure_entry()
+            )
+            return self.async_update_reload_and_abort(entry, data_updates=data)
 
-                                return self.async_create_entry(
-                                    title=f"Lynk & Co ({api.user_email})",
-                                    data={
-                                        CONF_ACCESS_TOKEN: access_token,
-                                        CONF_REFRESH_TOKEN: refresh_token,
-                                        CONF_DEVICE_ID: device_id,
-                                    },
-                                )
-
-        return self.async_show_form(
-            step_id="paste_redirect",
-            data_schema=vol.Schema(
-                {vol.Required("redirect_url"): str}
-            ),
-            errors=errors,
-        )
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(title=f"Lynk & Co ({api.user_email})", data=data)
 
     async def async_step_reauth(self, entry_data=None):
         """Handle re-authentication (opened from the Repairs entry).
 
         Same browser login as the initial setup; the existing entry is updated
         with the new tokens in async_step_paste_redirect.
+        """
+        return await self.async_step_user()
+
+    async def async_step_reconfigure(self, user_input=None):
+        """Log in again on demand (the entry's ⋮ menu > Reconfigure).
+
+        For example after logging in on the phone app, which ends the Home
+        Assistant session. Same browser login as the initial setup.
         """
         return await self.async_step_user()
 

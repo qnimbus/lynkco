@@ -1,0 +1,30 @@
+# Lint rules for this repository. A practical subset of what Home Assistant core
+# uses (https://github.com/home-assistant/core/blob/dev/pyproject.toml).
+# Run with scripts/lint; CI runs `ruff check`.
+
+target-version = "py314"
+
+[lint]
+select = [
+    "ASYNC", # blocking calls in async code
+    "B",     # likely bugs
+    "BLE",   # blind `except Exception`
+    "E",     # pycodestyle errors
+    "F",     # pyflakes
+    "I",     # import order
+    "LOG",   # logging misuse
+    "PIE",   # unnecessary code
+    "RUF",   # ruff-specific checks
+    "SIM",   # simplifications
+    "UP",    # newer Python syntax
+    "W",     # pycodestyle warnings
+]
+ignore = [
+    "E501",   # line length: the code is not formatted to a fixed width
+    "RUF012", # class-level _attr_* lists are the normal Home Assistant entity pattern
+]
+
+[lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+combine-as-imports = true
