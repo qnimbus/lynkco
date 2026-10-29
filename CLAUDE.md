@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Home Assistant custom integration (`custom_components/lynkco/`, domain `lynkco`) for Lynk & Co vehicles (2025+ 01, 02, 08; pre-2025 01 partially). The API is reverse-engineered from the Lynk & Co Android app, so there is no official spec. Behaviour is inferred from the app and from owner reports. This repo is `qnimbus/ha_lynkco_2025`, a fork of `b12e/ha_lynkco_2025` (where pull requests are switched off), published as a HACS custom repository. It keeps the domain `lynkco` on purpose, so it replaces the original as a drop-in. `manifest.json`, `const.ISSUE_TRACKER` and the issue templates point to the fork. Links to the wiki and to historical issues (e.g. #33) still point to b12e, because that content only exists there.
+Home Assistant custom integration (`custom_components/lynkco/`, domain `lynkco`) for Lynk & Co vehicles (2025+ 01, 02, 08; pre-2025 01 partially). The API is reverse-engineered from the Lynk & Co Android app, so there is no official spec. Behaviour is inferred from the app and from owner reports. This repo is `qnimbus/ha_lynkco`, a fork of `b12e/ha_lynkco_2025` (where pull requests are switched off), published as a HACS custom repository. It keeps the domain `lynkco` on purpose, so it replaces the original as a drop-in. `manifest.json`, `const.ISSUE_TRACKER` and the issue templates point to the fork. Links to the wiki and to historical issues (e.g. #33) still point to b12e, because that content only exists there.
 
 ## Commands
 

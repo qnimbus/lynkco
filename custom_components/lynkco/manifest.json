@@ -6,10 +6,10 @@
   ],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/qnimbus/ha_lynkco_2025",
+  "documentation": "https://github.com/qnimbus/ha_lynkco",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/qnimbus/ha_lynkco_2025/issues",
+  "issue_tracker": "https://github.com/qnimbus/ha_lynkco/issues",
   "requirements": [
     "pkce>=1.0.3"
   ],
